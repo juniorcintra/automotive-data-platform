@@ -1,18 +1,3 @@
-from src.ingestion.cars import get_all_cars
-
-from src.quality.cars import validate_cars
-
-from src.storage.cars import (
-    save_raw_cars,
-    save_processed_cars,
-    load_processed_cars,
-    save_gold_metrics,
-)
-
-from src.analytics.cars import (
-    calculate_car_metrics,
-)
-
 def transform_car(
     car: dict,
 ) -> dict:
@@ -31,122 +16,54 @@ def transform_car(
         or {}
     )
 
-    transformed_car = {
-
-        # ========================================
-        # IDENTIFICAÇÃO
-        # ========================================
-
+    return {
+        # Identificação
         "car_id": car.get("id"),
 
-        # ========================================
-        # INFORMAÇÕES DO VEÍCULO
-        # ========================================
-
+        # Informações do veículo
         "brand": car.get("marca"),
-
         "model": car.get("modelo"),
-
         "year": car.get("ano"),
-
         "color": car.get("cor"),
-
         "version": car.get("versao"),
+        "mileage": car.get("quilometragem"),
 
-        "mileage": car.get(
-            "quilometragem"
-        ),
+        # Características
+        "fuel": car.get("combustivel"),
+        "transmission": car.get("cambio"),
+        "body_type": car.get("carroceria"),
 
-        # ========================================
-        # CARACTERÍSTICAS
-        # ========================================
+        # Status
+        "status": car.get("status"),
+        "condition": car.get("condicao"),
 
-        "fuel": car.get(
-            "combustivel"
-        ),
-
-        "transmission": car.get(
-            "cambio"
-        ),
-
-        "body_type": car.get(
-            "carroceria"
-        ),
-
-        # ========================================
-        # STATUS
-        # ========================================
-
-        "status": car.get(
-            "status"
-        ),
-
-        "condition": car.get(
-            "condicao"
-        ),
-
-        # ========================================
-        # PREÇOS
-        # ========================================
-
+        # Preços
         "price_effective": (
-            comparativo_preco.get(
-                "precoEfetivo"
-            )
+            comparativo_preco.get("precoEfetivo")
         ),
-
         "price_fipe": (
-            comparativo_preco.get(
-                "precoFipe"
-            )
+            comparativo_preco.get("precoFipe")
         ),
-
         "price_market": (
-            comparativo_preco.get(
-                "precoMercado"
-            )
+            comparativo_preco.get("precoMercado")
         ),
-
         "price_difference_fipe_percent": (
             comparativo_preco.get(
                 "percentualDiferencaFipe"
             )
         ),
 
-        # ========================================
-        # VENDEDOR
-        # ========================================
+        # Vendedor
+        "seller_id": seller.get("id"),
+        "seller_name": seller.get("nome"),
 
-        "seller_id": seller.get(
-            "id"
-        ),
+        # Métricas
+        "views": car.get("visualizacoes"),
 
-        "seller_name": seller.get(
-            "nome"
-        ),
-
-        # ========================================
-        # MÉTRICAS
-        # ========================================
-
-        "views": car.get(
-            "visualizacoes"
-        ),
-
-        # ========================================
-        # DATAS
-        # ========================================
-
-        "created_at": car.get(
-            "createdAt"
-        ),
-
-        "updated_at": car.get(
-            "updatedAt"
-        ),
+        # Datas
+        "created_at": car.get("createdAt"),
+        "updated_at": car.get("updatedAt"),
     }
-
-    return transformed_car
 
 
 def transform_cars(
@@ -160,144 +77,3 @@ def transform_cars(
         transform_car(car)
         for car in cars
     ]
-
-
-def main():
-
-    print(
-        "\n===== INICIANDO PIPELINE ====="
-    )
-
-    # ========================================
-    # 1. INGESTION
-    # ========================================
-
-    print("\n===== INGESTION =====")
-
-    cars = get_all_cars()
-
-    print(
-        f"Total de carros recebidos: "
-        f"{len(cars)}"
-    )
-
-    # ========================================
-    # 2. BRONZE
-    # ========================================
-
-    print("\n===== BRONZE =====")
-
-    raw_file = save_raw_cars(
-        {
-            "data": cars,
-        }
-    )
-
-    print(
-        f"Bronze salvo em: {raw_file}"
-    )
-
-    # ========================================
-    # 3. DATA QUALITY
-    # ========================================
-
-    print("\n===== DATA QUALITY =====")
-
-    valid_cars, invalid_cars = (
-        validate_cars(cars)
-    )
-
-    print(
-        f"Registros válidos: "
-        f"{len(valid_cars)}"
-    )
-
-    print(
-        f"Registros inválidos: "
-        f"{len(invalid_cars)}"
-    )
-
-    # ========================================
-    # 4. TRANSFORMATION
-    # ========================================
-
-    print("\n===== TRANSFORMATION =====")
-
-    transformed_cars = transform_cars(
-        valid_cars
-    )
-
-    print(
-        f"Total transformado: "
-        f"{len(transformed_cars)}"
-    )
-
-    # ========================================
-    # 5. SILVER
-    # ========================================
-
-    print("\n===== SILVER =====")
-
-    processed_file = (
-        save_processed_cars(
-            transformed_cars
-        )
-    )
-
-    print(
-        f"Silver salvo em: "
-        f"{processed_file}"
-    )
-
-    # ========================================
-    # 6. CARREGA A SILVER
-    # ========================================
-
-    silver_cars = load_processed_cars(
-        processed_file
-    )
-
-    print(
-        f"Registros carregados da Silver: "
-        f"{len(silver_cars)}"
-    )
-
-    # ========================================
-    # 7. GOLD / ANALYTICS
-    # ========================================
-
-    print("\n===== GOLD / ANALYTICS =====")
-
-    metrics = calculate_car_metrics(
-        silver_cars
-    )
-
-    print(
-        f"Total de carros analisados: "
-        f"{metrics['total_cars']}"
-    )
-
-    # ========================================
-    # 8. SALVA GOLD
-    # ========================================
-
-    gold_file = save_gold_metrics(
-        metrics
-    )
-
-    print(
-        f"Gold salvo em: {gold_file}"
-    )
-
-    # ========================================
-    # FINAL
-    # ========================================
-
-    print(
-        "\n===== PIPELINE FINALIZADO "
-        "COM SUCESSO =====\n"
-    )
-
-
-if __name__ == "__main__":
-    main()
