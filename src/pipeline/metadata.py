@@ -25,6 +25,7 @@ def create_pipeline_metadata(
         "total_valid": 0,
         "total_invalid": 0,
         "total_transformed": 0,
+        "error": None,
     }
 
 
@@ -103,3 +104,22 @@ def save_pipeline_metadata(
     )
 
     return file_path
+
+def fail_pipeline_metadata(
+    metadata: dict,
+    error: Exception,
+) -> dict:
+    """
+    Registra a falha de uma execução
+    do pipeline.
+    """
+
+    metadata["status"] = "failed"
+
+    metadata["finished_at"] = (
+        datetime.now().isoformat()
+    )
+
+    metadata["error"] = str(error)
+
+    return metadata

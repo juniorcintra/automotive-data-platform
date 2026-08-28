@@ -2,6 +2,7 @@ from pathlib import Path
 
 from src.pipeline.metadata import (
     create_pipeline_metadata,
+    fail_pipeline_metadata,
     finish_pipeline_metadata,
     save_pipeline_metadata,
 )
@@ -71,4 +72,26 @@ def test_save_pipeline_metadata(
 
     assert file_path.parent.name == (
         "test_run"
+    )
+
+def test_fail_pipeline_metadata():
+    metadata = create_pipeline_metadata(
+        "test_run_123"
+    )
+
+    error = ValueError(
+        "Erro ao processar veículos"
+    )
+
+    result = fail_pipeline_metadata(
+        metadata=metadata,
+        error=error,
+    )
+
+    assert result["status"] == "failed"
+
+    assert result["finished_at"] is not None
+
+    assert result["error"] == (
+        "Erro ao processar veículos"
     )
