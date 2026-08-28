@@ -1,23 +1,12 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual Environment
+# Virtual environment
 .venv/
-venv/
-env/
 
 # Environment variables
 .env
-.env.*
 
-# Data
-data/raw/
-data/processed/
-
-# Jupyter
-.ipynb_checkpoints/
+# Python cache
+__pycache__/
+*.py[cod]
 
 # IDE
 .vscode/
@@ -26,3 +15,6 @@ data/processed/
 # OS
 .DS_Store
 Thumbs.db
+
+# Data
+data/
