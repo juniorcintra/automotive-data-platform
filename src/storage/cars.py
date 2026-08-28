@@ -3,11 +3,15 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
+
 
 DATA_DIR = Path("data")
 
 
-def save_raw_cars(data: dict) -> Path:
+def save_raw_cars(
+    data: dict,
+) -> Path:
     """
     Salva os dados brutos na camada Bronze.
     """
@@ -53,7 +57,8 @@ def save_processed_cars(
     data: list[dict],
 ) -> Path:
     """
-    Salva os dados processados na camada Silver.
+    Salva os dados processados
+    na camada Silver em formato Parquet.
     """
 
     timestamp = datetime.now().strftime(
@@ -72,19 +77,20 @@ def save_processed_cars(
         exist_ok=True,
     )
 
-    file_path = output_dir / "cars.json"
+    file_path = (
+        output_dir
+        / "cars.parquet"
+    )
 
-    with open(
+    dataframe = pd.DataFrame(
+        data
+    )
+
+    dataframe.to_parquet(
         file_path,
-        "w",
-        encoding="utf-8",
-    ) as file:
-        json.dump(
-            data,
-            file,
-            ensure_ascii=False,
-            indent=2,
-        )
+        index=False,
+        engine="pyarrow",
+    )
 
     print(
         f"Dados Silver salvos em: {file_path}"
@@ -97,16 +103,18 @@ def load_processed_cars(
     file_path: Path,
 ) -> list[dict]:
     """
-    Carrega os veículos da camada Silver.
+    Carrega os veículos da camada Silver
+    armazenados em formato Parquet.
     """
 
-    with open(
+    dataframe = pd.read_parquet(
         file_path,
-        "r",
-        encoding="utf-8",
-    ) as file:
+        engine="pyarrow",
+    )
 
-        return json.load(file)
+    return dataframe.to_dict(
+        orient="records"
+    )
 
 
 def save_gold_metrics(
@@ -143,7 +151,6 @@ def save_gold_metrics(
         "w",
         encoding="utf-8",
     ) as file:
-
         json.dump(
             metrics,
             file,

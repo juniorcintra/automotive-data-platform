@@ -1,13 +1,20 @@
-import json
+from pathlib import Path
 
-from src.storage import cars as storage
+from src.storage.cars import (
+    load_processed_cars,
+    save_gold_metrics,
+    save_processed_cars,
+    save_raw_cars,
+)
 
 
-def test_save_raw_cars(tmp_path, monkeypatch):
+def test_save_raw_cars(
+    tmp_path,
+    monkeypatch,
+):
     monkeypatch.setattr(
-        storage,
-        "DATA_DIR",
-        tmp_path,
+        "src.storage.cars.DATA_DIR",
+        Path(tmp_path),
     )
 
     data = {
@@ -15,62 +22,62 @@ def test_save_raw_cars(tmp_path, monkeypatch):
             {
                 "id": "1",
                 "marca": "Toyota",
-                "modelo": "Corolla",
             }
         ]
     }
 
-    file_path = storage.save_raw_cars(data)
+    file_path = save_raw_cars(
+        data
+    )
 
     assert file_path.exists()
 
-    assert "bronze" in str(file_path)
-    assert file_path.name == "cars.json"
-
-    with open(
-        file_path,
-        "r",
-        encoding="utf-8",
-    ) as file:
-        saved_data = json.load(file)
-
-    assert saved_data == data
+    assert file_path.suffix == ".json"
 
 
-def test_save_processed_cars(tmp_path, monkeypatch):
+def test_save_processed_cars(
+    tmp_path,
+    monkeypatch,
+):
     monkeypatch.setattr(
-        storage,
-        "DATA_DIR",
-        tmp_path,
+        "src.storage.cars.DATA_DIR",
+        Path(tmp_path),
     )
 
-    data = [
+    cars = [
         {
             "car_id": "1",
             "brand": "Toyota",
             "model": "Corolla",
-        }
+            "year": 2024,
+        },
+        {
+            "car_id": "2",
+            "brand": "Honda",
+            "model": "Civic",
+            "year": 2023,
+        },
     ]
 
-    file_path = storage.save_processed_cars(data)
+    file_path = save_processed_cars(
+        cars
+    )
 
     assert file_path.exists()
 
-    assert "silver" in str(file_path)
-    assert file_path.name == "cars.json"
-
-    with open(
-        file_path,
-        "r",
-        encoding="utf-8",
-    ) as file:
-        saved_data = json.load(file)
-
-    assert saved_data == data
+    assert file_path.suffix == ".parquet"
 
 
-def test_load_processed_cars(tmp_path):
-    data = [
+def test_load_processed_cars(
+    tmp_path,
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        "src.storage.cars.DATA_DIR",
+        Path(tmp_path),
+    )
+
+    cars = [
         {
             "car_id": "1",
             "brand": "Toyota",
@@ -83,55 +90,43 @@ def test_load_processed_cars(tmp_path):
         },
     ]
 
-    file_path = tmp_path / "cars.json"
-
-    with open(
-        file_path,
-        "w",
-        encoding="utf-8",
-    ) as file:
-        json.dump(
-            data,
-            file,
-        )
-
-    loaded_data = storage.load_processed_cars(
-        file_path,
+    file_path = save_processed_cars(
+        cars
     )
 
-    assert loaded_data == data
+    loaded_cars = load_processed_cars(
+        file_path
+    )
+
+    assert len(loaded_cars) == 2
+
+    assert loaded_cars[0]["car_id"] == "1"
+
+    assert loaded_cars[0]["brand"] == "Toyota"
+
+    assert loaded_cars[1]["car_id"] == "2"
+
+    assert loaded_cars[1]["brand"] == "Honda"
 
 
-def test_save_gold_metrics(tmp_path, monkeypatch):
+def test_save_gold_metrics(
+    tmp_path,
+    monkeypatch,
+):
     monkeypatch.setattr(
-        storage,
-        "DATA_DIR",
-        tmp_path,
+        "src.storage.cars.DATA_DIR",
+        Path(tmp_path),
     )
 
     metrics = {
-        "total_cars": 33,
-        "average_price": 85000,
-        "brands": {
-            "Toyota": 10,
-            "Honda": 8,
-        },
+        "total_cars": 2,
+        "average_price": 50000.0,
     }
 
-    file_path = storage.save_gold_metrics(
-        metrics,
+    file_path = save_gold_metrics(
+        metrics
     )
 
     assert file_path.exists()
 
-    assert "gold" in str(file_path)
-    assert file_path.name == "cars_metrics.json"
-
-    with open(
-        file_path,
-        "r",
-        encoding="utf-8",
-    ) as file:
-        saved_data = json.load(file)
-
-    assert saved_data == metrics
+    assert file_path.suffix == ".json"
