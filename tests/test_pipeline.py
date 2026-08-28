@@ -1,12 +1,10 @@
 from pathlib import Path
-
 from unittest.mock import ANY, patch
 
 from src.pipeline.cars import main
 
 
 def test_pipeline_execution():
-
     raw_cars = [
         {
             "id": "1",
@@ -41,11 +39,30 @@ def test_pipeline_execution():
         "total_cars": 2,
     }
 
+    initial_metadata = {
+        "run_id": "test_run",
+        "status": "running",
+    }
+
+    finished_metadata = {
+        "run_id": "test_run",
+        "status": "success",
+        "total_received": 2,
+        "total_valid": 2,
+        "total_invalid": 0,
+        "total_transformed": 2,
+    }
+
     with (
         patch(
             "src.pipeline.cars.get_all_cars",
             return_value=raw_cars,
         ) as mock_get_all_cars,
+
+        patch(
+            "src.pipeline.cars.create_pipeline_metadata",
+            return_value=initial_metadata,
+        ) as mock_create_metadata,
 
         patch(
             "src.pipeline.cars.save_raw_cars",
@@ -70,7 +87,7 @@ def test_pipeline_execution():
         patch(
             "src.pipeline.cars.save_processed_cars",
             return_value=Path(
-                "data/silver/cars.json"
+                "data/silver/cars.parquet"
             ),
         ) as mock_save_processed_cars,
 
@@ -85,14 +102,33 @@ def test_pipeline_execution():
         ) as mock_calculate_metrics,
 
         patch(
+            "src.pipeline.cars.finish_pipeline_metadata",
+            return_value=finished_metadata,
+        ) as mock_finish_metadata,
+
+        patch(
+            "src.pipeline.cars.save_pipeline_metadata",
+            return_value=Path(
+                "data/metadata/test_run/metadata.json"
+            ),
+        ) as mock_save_metadata,
+
+        patch(
             "src.pipeline.cars.save_gold_metrics",
             return_value=Path(
                 "data/gold/cars_metrics.json"
             ),
         ) as mock_save_gold_metrics,
     ):
-
         main()
+
+    # ========================================
+    # METADATA INICIAL
+    # ========================================
+
+    mock_create_metadata.assert_called_once_with(
+        ANY
+    )
 
     # ========================================
     # INGESTION
@@ -137,7 +173,7 @@ def test_pipeline_execution():
     )
 
     mock_load_processed_cars.assert_called_once_with(
-        Path("data/silver/cars.json")
+        Path("data/silver/cars.parquet")
     )
 
     # ========================================
@@ -147,6 +183,30 @@ def test_pipeline_execution():
     mock_calculate_metrics.assert_called_once_with(
         transformed_cars
     )
+
+    # ========================================
+    # FINALIZA METADATA
+    # ========================================
+
+    mock_finish_metadata.assert_called_once_with(
+        metadata=initial_metadata,
+        total_received=2,
+        total_valid=2,
+        total_invalid=0,
+        total_transformed=2,
+    )
+
+    # ========================================
+    # SALVA METADATA
+    # ========================================
+
+    mock_save_metadata.assert_called_once_with(
+        finished_metadata
+    )
+
+    # ========================================
+    # SALVA GOLD
+    # ========================================
 
     mock_save_gold_metrics.assert_called_once_with(
         metrics=metrics,

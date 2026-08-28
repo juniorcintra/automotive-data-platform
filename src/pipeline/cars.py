@@ -11,6 +11,7 @@ from src.ingestion.cars import (
 from src.pipeline.metadata import (
     create_pipeline_metadata,
     finish_pipeline_metadata,
+    save_pipeline_metadata,
 )
 
 from src.quality.cars import (
@@ -172,7 +173,19 @@ def main():
     )
 
     # ========================================
-    # 9. GOLD
+    # 9. SALVA METADATA
+    # ========================================
+
+    metadata_file = save_pipeline_metadata(
+        metadata
+    )
+
+    print(
+        f"Metadata salvo em: {metadata_file}"
+    )
+
+    # ========================================
+    # 10. GOLD
     # ========================================
 
     print("\n===== GOLD =====")
