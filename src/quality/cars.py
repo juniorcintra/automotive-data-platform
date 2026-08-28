@@ -132,6 +132,35 @@ def find_duplicate_ids(cars: list[dict]) -> list[str]:
     return duplicate_ids
 
 
+def validate_cars(cars: list[dict]) -> tuple[list[dict], list[dict]]:
+    """
+    Valida uma lista de veículos.
+
+    Retorna:
+    - Lista de veículos válidos
+    - Lista de veículos inválidos com seus respectivos erros
+    """
+
+    valid_cars = []
+    invalid_cars = []
+
+    for car in cars:
+
+        errors = validate_car(car)
+
+        if errors:
+            invalid_cars.append(
+                {
+                    "car": car,
+                    "errors": errors,
+                }
+            )
+        else:
+            valid_cars.append(car)
+
+    return valid_cars, invalid_cars
+
+
 def main():
     """
     Executa a etapa de Data Quality
@@ -167,32 +196,15 @@ def main():
     else:
         cars = response
 
-    print(f"\nTotal de carros recebidos: {len(cars)}")
+    print(
+        f"\nTotal de carros recebidos: {len(cars)}"
+    )
 
     # ============================================================
     # 4. VALIDA OS REGISTROS
     # ============================================================
 
-    invalid_cars = []
-
-    total_errors = 0
-
-    for car in cars:
-
-        errors = validate_car(car)
-
-        if errors:
-
-            invalid_cars.append(
-                {
-                    "id": car.get("id"),
-                    "marca": car.get("marca"),
-                    "modelo": car.get("modelo"),
-                    "errors": errors,
-                }
-            )
-
-            total_errors += len(errors)
+    valid_cars, invalid_cars = validate_cars(cars)
 
     # ============================================================
     # 5. PROCURA DUPLICIDADES
@@ -201,12 +213,21 @@ def main():
     duplicate_ids = find_duplicate_ids(cars)
 
     # ============================================================
-    # 6. MONTA O RELATÓRIO
+    # 6. CONTA TOTAL DE ERROS
+    # ============================================================
+
+    total_errors = sum(
+        len(invalid_car["errors"])
+        for invalid_car in invalid_cars
+    )
+
+    # ============================================================
+    # 7. MONTA O RELATÓRIO
     # ============================================================
 
     report = {
         "total_records": len(cars),
-        "valid_records": len(cars) - len(invalid_cars),
+        "valid_records": len(valid_cars),
         "invalid_records": len(invalid_cars),
         "total_validation_errors": total_errors,
         "duplicate_ids": duplicate_ids,
@@ -214,7 +235,7 @@ def main():
     }
 
     # ============================================================
-    # 7. EXIBE O RELATÓRIO
+    # 8. EXIBE O RELATÓRIO
     # ============================================================
 
     print("\n===== DATA QUALITY REPORT =====")
@@ -247,7 +268,7 @@ def main():
     print("================================")
 
     # ============================================================
-    # 8. EXIBE EXEMPLOS DE REGISTROS INVÁLIDOS
+    # 9. EXIBE EXEMPLOS DE REGISTROS INVÁLIDOS
     # ============================================================
 
     if invalid_cars:
@@ -258,29 +279,28 @@ def main():
 
         for invalid_car in invalid_cars[:5]:
 
+            car = invalid_car["car"]
+
             print(
-                f"\nCarro ID: "
-                f"{invalid_car['id']}"
+                f"\nCarro ID: {car.get('id')}"
             )
 
             print(
                 f"Veículo: "
-                f"{invalid_car['marca']} "
-                f"{invalid_car['modelo']}"
+                f"{car.get('marca')} "
+                f"{car.get('modelo')}"
             )
 
             for error in invalid_car["errors"]:
-
                 print(f"  - {error}")
 
     else:
-
         print(
             "\nNenhum registro inválido encontrado."
         )
 
     # ============================================================
-    # 9. EXIBE DUPLICIDADES
+    # 10. EXIBE DUPLICIDADES
     # ============================================================
 
     if duplicate_ids:
@@ -288,10 +308,13 @@ def main():
         print("\n===== IDs DUPLICADOS =====")
 
         for car_id in duplicate_ids:
+            print(
+                f"ID duplicado: {car_id}"
+            )
 
-            print(f"ID duplicado: {car_id}")
-
-    print("\n===== DATA QUALITY FINALIZADO =====\n")
+    print(
+        "\n===== DATA QUALITY FINALIZADO =====\n"
+    )
 
 
 if __name__ == "__main__":
