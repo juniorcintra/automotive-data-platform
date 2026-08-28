@@ -1,8 +1,10 @@
+from pathlib import Path
+
 from src.pipeline.metadata import (
     create_pipeline_metadata,
     finish_pipeline_metadata,
+    save_pipeline_metadata,
 )
-
 
 def test_create_pipeline_metadata():
     run_id = "test_run_123"
@@ -41,3 +43,32 @@ def test_finish_pipeline_metadata():
     assert result["total_valid"] == 90
     assert result["total_invalid"] == 10
     assert result["total_transformed"] == 90
+
+
+def test_save_pipeline_metadata(
+    tmp_path,
+    monkeypatch,
+):
+
+    monkeypatch.setattr(
+        "src.pipeline.metadata.DATA_DIR",
+        Path(tmp_path),
+    )
+
+    metadata = create_pipeline_metadata(
+        "test_run"
+    )
+
+    file_path = save_pipeline_metadata(
+        metadata
+    )
+
+    assert file_path.exists()
+
+    assert file_path.name == (
+        "metadata.json"
+    )
+
+    assert file_path.parent.name == (
+        "test_run"
+    )

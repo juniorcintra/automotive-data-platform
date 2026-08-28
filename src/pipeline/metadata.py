@@ -1,4 +1,11 @@
+import json
+
 from datetime import datetime
+
+from pathlib import Path
+
+
+DATA_DIR = Path("data")
 
 
 def create_pipeline_metadata(
@@ -50,3 +57,49 @@ def finish_pipeline_metadata(
     )
 
     return metadata
+
+
+def save_pipeline_metadata(
+    metadata: dict,
+) -> Path:
+    """
+    Salva os metadados da execução
+    do pipeline em arquivo JSON.
+    """
+
+    run_id = metadata["run_id"]
+
+    output_dir = (
+        DATA_DIR
+        / "metadata"
+        / run_id
+    )
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    file_path = (
+        output_dir
+        / "metadata.json"
+    )
+
+    with open(
+        file_path,
+        "w",
+        encoding="utf-8",
+    ) as file:
+
+        json.dump(
+            metadata,
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+    print(
+        f"Metadata salvo em: {file_path}"
+    )
+
+    return file_path
