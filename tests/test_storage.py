@@ -26,8 +26,11 @@ def test_save_raw_cars(
         ]
     }
 
+    run_id = "test_run"
+
     file_path = save_raw_cars(
-        data
+        data,
+        run_id,
     )
 
     assert file_path.exists()
@@ -59,8 +62,11 @@ def test_save_processed_cars(
         },
     ]
 
+    run_id = "test_run"
+
     file_path = save_processed_cars(
-        cars
+        cars,
+        run_id,
     )
 
     assert file_path.exists()
@@ -90,8 +96,11 @@ def test_load_processed_cars(
         },
     ]
 
+    run_id = "test_run"
+
     file_path = save_processed_cars(
-        cars
+        cars,
+        run_id,
     )
 
     loaded_cars = load_processed_cars(
@@ -123,8 +132,11 @@ def test_save_gold_metrics(
         "average_price": 50000.0,
     }
 
+    run_id = "test_run"
+
     file_path = save_gold_metrics(
-        metrics
+        metrics,
+        run_id,
     )
 
     assert file_path.exists()

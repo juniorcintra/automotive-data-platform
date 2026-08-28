@@ -1,6 +1,5 @@
 import json
 
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -11,20 +10,17 @@ DATA_DIR = Path("data")
 
 def save_raw_cars(
     data: dict,
+    run_id: str,
 ) -> Path:
     """
     Salva os dados brutos na camada Bronze.
     """
 
-    timestamp = datetime.now().strftime(
-        "%Y%m%d_%H%M%S"
-    )
-
     output_dir = (
         DATA_DIR
         / "bronze"
         / "cars"
-        / f"run_{timestamp}"
+        / run_id
     )
 
     output_dir.mkdir(
@@ -55,21 +51,18 @@ def save_raw_cars(
 
 def save_processed_cars(
     data: list[dict],
+    run_id: str,
 ) -> Path:
     """
     Salva os dados processados
     na camada Silver em formato Parquet.
     """
 
-    timestamp = datetime.now().strftime(
-        "%Y%m%d_%H%M%S"
-    )
-
     output_dir = (
         DATA_DIR
         / "silver"
         / "cars"
-        / f"run_{timestamp}"
+        / run_id
     )
 
     output_dir.mkdir(
@@ -119,21 +112,18 @@ def load_processed_cars(
 
 def save_gold_metrics(
     metrics: dict,
+    run_id: str,
 ) -> Path:
     """
     Salva as métricas agregadas
     na camada Gold.
     """
 
-    timestamp = datetime.now().strftime(
-        "%Y%m%d_%H%M%S"
-    )
-
     output_dir = (
         DATA_DIR
         / "gold"
         / "cars"
-        / f"run_{timestamp}"
+        / run_id
     )
 
     output_dir.mkdir(
