@@ -1,9 +1,16 @@
+from datetime import datetime
+
 from src.analytics.cars import (
     calculate_car_metrics,
 )
 
 from src.ingestion.cars import (
     get_all_cars,
+)
+
+from src.pipeline.metadata import (
+    create_pipeline_metadata,
+    finish_pipeline_metadata,
 )
 
 from src.quality.cars import (
@@ -27,8 +34,20 @@ def main():
     Executa o pipeline completo de veículos.
     """
 
+    run_id = datetime.now().strftime(
+        "run_%Y%m%d_%H%M%S"
+    )
+
+    metadata = create_pipeline_metadata(
+        run_id
+    )
+
     print(
         "\n===== INICIANDO PIPELINE ====="
+    )
+
+    print(
+        f"Run ID: {run_id}"
     )
 
     # ========================================
@@ -51,9 +70,10 @@ def main():
     print("\n===== BRONZE =====")
 
     raw_file = save_raw_cars(
-        {
+        data={
             "data": cars,
-        }
+        },
+        run_id=run_id,
     )
 
     print(
@@ -101,10 +121,9 @@ def main():
 
     print("\n===== SILVER =====")
 
-    processed_file = (
-        save_processed_cars(
-            transformed_cars
-        )
+    processed_file = save_processed_cars(
+        data=transformed_cars,
+        run_id=run_id,
     )
 
     print(
@@ -141,11 +160,26 @@ def main():
     )
 
     # ========================================
-    # 8. SALVA GOLD
+    # 8. FINALIZA METADATA
     # ========================================
 
+    metadata = finish_pipeline_metadata(
+        metadata=metadata,
+        total_received=len(cars),
+        total_valid=len(valid_cars),
+        total_invalid=len(invalid_cars),
+        total_transformed=len(transformed_cars),
+    )
+
+    # ========================================
+    # 9. GOLD
+    # ========================================
+
+    print("\n===== GOLD =====")
+
     gold_file = save_gold_metrics(
-        metrics
+        metrics=metrics,
+        run_id=run_id,
     )
 
     print(

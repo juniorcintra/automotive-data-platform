@@ -1,10 +1,12 @@
 from pathlib import Path
-from unittest.mock import patch
+
+from unittest.mock import ANY, patch
 
 from src.pipeline.cars import main
 
 
 def test_pipeline_execution():
+
     raw_cars = [
         {
             "id": "1",
@@ -103,9 +105,10 @@ def test_pipeline_execution():
     # ========================================
 
     mock_save_raw_cars.assert_called_once_with(
-        {
+        data={
             "data": raw_cars,
-        }
+        },
+        run_id=ANY,
     )
 
     # ========================================
@@ -129,7 +132,8 @@ def test_pipeline_execution():
     # ========================================
 
     mock_save_processed_cars.assert_called_once_with(
-        transformed_cars
+        data=transformed_cars,
+        run_id=ANY,
     )
 
     mock_load_processed_cars.assert_called_once_with(
@@ -145,5 +149,6 @@ def test_pipeline_execution():
     )
 
     mock_save_gold_metrics.assert_called_once_with(
-        metrics
+        metrics=metrics,
+        run_id=ANY,
     )
