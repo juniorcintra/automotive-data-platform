@@ -43,7 +43,7 @@ def save_raw_cars(data: dict) -> Path:
         )
 
     print(
-        f"Dados brutos salvos em: {file_path}"
+        f"Dados Bronze salvos em: {file_path}"
     )
 
     return file_path
@@ -53,7 +53,7 @@ def save_processed_cars(
     data: list[dict],
 ) -> Path:
     """
-    Salva os dados transformados na camada Silver.
+    Salva os dados processados na camada Silver.
     """
 
     timestamp = datetime.now().strftime(
@@ -87,7 +87,72 @@ def save_processed_cars(
         )
 
     print(
-        f"Dados processados salvos em: {file_path}"
+        f"Dados Silver salvos em: {file_path}"
+    )
+
+    return file_path
+
+
+def load_processed_cars(
+    file_path: Path,
+) -> list[dict]:
+    """
+    Carrega os veículos da camada Silver.
+    """
+
+    with open(
+        file_path,
+        "r",
+        encoding="utf-8",
+    ) as file:
+
+        return json.load(file)
+
+
+def save_gold_metrics(
+    metrics: dict,
+) -> Path:
+    """
+    Salva as métricas agregadas
+    na camada Gold.
+    """
+
+    timestamp = datetime.now().strftime(
+        "%Y%m%d_%H%M%S"
+    )
+
+    output_dir = (
+        DATA_DIR
+        / "gold"
+        / "cars"
+        / f"run_{timestamp}"
+    )
+
+    output_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    file_path = (
+        output_dir
+        / "cars_metrics.json"
+    )
+
+    with open(
+        file_path,
+        "w",
+        encoding="utf-8",
+    ) as file:
+
+        json.dump(
+            metrics,
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+    print(
+        f"Dados Gold salvos em: {file_path}"
     )
 
     return file_path

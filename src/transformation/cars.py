@@ -5,8 +5,13 @@ from src.quality.cars import validate_cars
 from src.storage.cars import (
     save_raw_cars,
     save_processed_cars,
+    load_processed_cars,
+    save_gold_metrics,
 )
 
+from src.analytics.cars import (
+    calculate_car_metrics,
+)
 
 def transform_car(
     car: dict,
@@ -167,9 +172,7 @@ def main():
     # 1. INGESTION
     # ========================================
 
-    print(
-        "\n===== INGESTION ====="
-    )
+    print("\n===== INGESTION =====")
 
     cars = get_all_cars()
 
@@ -182,9 +185,7 @@ def main():
     # 2. BRONZE
     # ========================================
 
-    print(
-        "\n===== SALVANDO BRONZE ====="
-    )
+    print("\n===== BRONZE =====")
 
     raw_file = save_raw_cars(
         {
@@ -200,9 +201,7 @@ def main():
     # 3. DATA QUALITY
     # ========================================
 
-    print(
-        "\n===== DATA QUALITY ====="
-    )
+    print("\n===== DATA QUALITY =====")
 
     valid_cars, invalid_cars = (
         validate_cars(cars)
@@ -222,9 +221,7 @@ def main():
     # 4. TRANSFORMATION
     # ========================================
 
-    print(
-        "\n===== TRANSFORMATION ====="
-    )
+    print("\n===== TRANSFORMATION =====")
 
     transformed_cars = transform_cars(
         valid_cars
@@ -239,9 +236,7 @@ def main():
     # 5. SILVER
     # ========================================
 
-    print(
-        "\n===== SALVANDO SILVER ====="
-    )
+    print("\n===== SILVER =====")
 
     processed_file = (
         save_processed_cars(
@@ -252,6 +247,46 @@ def main():
     print(
         f"Silver salvo em: "
         f"{processed_file}"
+    )
+
+    # ========================================
+    # 6. CARREGA A SILVER
+    # ========================================
+
+    silver_cars = load_processed_cars(
+        processed_file
+    )
+
+    print(
+        f"Registros carregados da Silver: "
+        f"{len(silver_cars)}"
+    )
+
+    # ========================================
+    # 7. GOLD / ANALYTICS
+    # ========================================
+
+    print("\n===== GOLD / ANALYTICS =====")
+
+    metrics = calculate_car_metrics(
+        silver_cars
+    )
+
+    print(
+        f"Total de carros analisados: "
+        f"{metrics['total_cars']}"
+    )
+
+    # ========================================
+    # 8. SALVA GOLD
+    # ========================================
+
+    gold_file = save_gold_metrics(
+        metrics
+    )
+
+    print(
+        f"Gold salvo em: {gold_file}"
     )
 
     # ========================================
