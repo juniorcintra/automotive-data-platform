@@ -18,3 +18,6 @@ Thumbs.db
 
 # Data
 data/
+
+# Pytest
+.pytest_cache/

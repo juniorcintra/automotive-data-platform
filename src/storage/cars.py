@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 
-DATA_DIR = Path("data")
+from src.core.config import DATA_DIR
 
 
 def save_raw_cars(

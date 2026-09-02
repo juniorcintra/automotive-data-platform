@@ -4,8 +4,7 @@ from datetime import datetime
 
 from pathlib import Path
 
-
-DATA_DIR = Path("data")
+from src.core.config import DATA_DIR
 
 
 def create_pipeline_metadata(

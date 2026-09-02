@@ -1,14 +1,12 @@
 import logging
 
-from src.core.logger import (
-    get_logger,
-)
+from src.core.logger import get_logger
 
 
 def test_get_logger_returns_logger():
 
     logger = get_logger(
-        "test_logger"
+        "test.logger"
     )
 
     assert isinstance(
@@ -17,29 +15,34 @@ def test_get_logger_returns_logger():
     )
 
 
-def test_get_logger_sets_info_level():
+def test_get_logger_has_handler():
 
     logger = get_logger(
-        "test_logger_level"
+        "test.handler"
     )
 
-    assert logger.level == logging.INFO
+    assert len(logger.handlers) == 1
 
 
 def test_get_logger_does_not_duplicate_handlers():
 
-    logger = get_logger(
-        "test_logger_handlers"
-    )
+    logger_name = "test.duplicate"
 
-    initial_handlers_count = len(
-        logger.handlers
+    logger = get_logger(
+        logger_name
     )
 
     get_logger(
-        "test_logger_handlers"
+        logger_name
     )
 
-    assert len(
-        logger.handlers
-    ) == initial_handlers_count
+    assert len(logger.handlers) == 1
+
+
+def test_get_logger_uses_info_as_default_level():
+
+    logger = get_logger(
+        "test.level"
+    )
+
+    assert logger.level == logging.INFO

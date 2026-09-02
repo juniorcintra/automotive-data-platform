@@ -1,5 +1,7 @@
 import logging
 
+from src.core.config import LOG_LEVEL
+
 
 def get_logger(
     name: str,
@@ -11,13 +13,23 @@ def get_logger(
 
     logger = logging.getLogger(name)
 
+    log_level = getattr(
+        logging,
+        LOG_LEVEL.upper(),
+        logging.INFO,
+    )
+
     logger.setLevel(
-        logging.INFO
+        log_level
     )
 
     if not logger.handlers:
 
         handler = logging.StreamHandler()
+
+        handler.setLevel(
+            log_level
+        )
 
         formatter = logging.Formatter(
             "%(asctime)s | "
