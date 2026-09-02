@@ -10,8 +10,10 @@ from src.ingestion.cars import (
 
 from src.pipeline.metadata import (
     create_pipeline_metadata,
+    fail_pipeline_metadata,
     finish_pipeline_metadata,
     save_pipeline_metadata,
+    update_pipeline_stage,
 )
 
 from src.quality.cars import (
@@ -44,6 +46,7 @@ def main():
     )
 
     try:
+
         print(
             "\n===== INICIANDO PIPELINE ====="
         )
@@ -55,6 +58,11 @@ def main():
         # ========================================
         # 1. INGESTION
         # ========================================
+
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="ingestion",
+        )
 
         print("\n===== INGESTION =====")
 
@@ -68,6 +76,11 @@ def main():
         # ========================================
         # 2. BRONZE
         # ========================================
+
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="bronze",
+        )
 
         print("\n===== BRONZE =====")
 
@@ -85,6 +98,11 @@ def main():
         # ========================================
         # 3. DATA QUALITY
         # ========================================
+
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="data_quality",
+        )
 
         print("\n===== DATA QUALITY =====")
 
@@ -106,6 +124,11 @@ def main():
         # 4. TRANSFORMATION
         # ========================================
 
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="transformation",
+        )
+
         print("\n===== TRANSFORMATION =====")
 
         transformed_cars = transform_cars(
@@ -121,6 +144,11 @@ def main():
         # 5. SILVER
         # ========================================
 
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="silver",
+        )
+
         print("\n===== SILVER =====")
 
         processed_file = save_processed_cars(
@@ -134,8 +162,15 @@ def main():
         )
 
         # ========================================
-        # 6. CARREGA SILVER
+        # 6. LOAD SILVER
         # ========================================
+
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="load_silver",
+        )
+
+        print("\n===== LOAD SILVER =====")
 
         silver_cars = load_processed_cars(
             processed_file
@@ -150,6 +185,11 @@ def main():
         # 7. GOLD / ANALYTICS
         # ========================================
 
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="analytics",
+        )
+
         print("\n===== GOLD / ANALYTICS =====")
 
         metrics = calculate_car_metrics(
@@ -162,8 +202,33 @@ def main():
         )
 
         # ========================================
-        # 8. FINALIZA METADATA
+        # 8. GOLD
         # ========================================
+
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="gold",
+        )
+
+        print("\n===== GOLD =====")
+
+        gold_file = save_gold_metrics(
+            metrics=metrics,
+            run_id=run_id,
+        )
+
+        print(
+            f"Gold salvo em: {gold_file}"
+        )
+
+        # ========================================
+        # 9. FINALIZA METADATA
+        # ========================================
+
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="completed",
+        )
 
         metadata = finish_pipeline_metadata(
             metadata=metadata,
@@ -180,21 +245,6 @@ def main():
         )
 
         # ========================================
-        # 9. GOLD
-        # ========================================
-
-        print("\n===== GOLD =====")
-
-        gold_file = save_gold_metrics(
-            metrics=metrics,
-            run_id=run_id,
-        )
-
-        print(
-            f"Gold salvo em: {gold_file}"
-        )
-
-        # ========================================
         # FINAL
         # ========================================
 
@@ -204,13 +254,11 @@ def main():
         )
 
     except Exception as error:
-        metadata["status"] = "error"
 
-        metadata["finished_at"] = (
-            datetime.now().isoformat()
+        metadata = fail_pipeline_metadata(
+            metadata=metadata,
+            error=error,
         )
-
-        metadata["error"] = str(error)
 
         save_pipeline_metadata(
             metadata

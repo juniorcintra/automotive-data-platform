@@ -19,15 +19,29 @@ def create_pipeline_metadata(
     return {
         "run_id": run_id,
         "status": "running",
+        "current_stage": "initialization",
         "started_at": datetime.now().isoformat(),
         "finished_at": None,
+        "duration_seconds": None,
         "total_received": 0,
         "total_valid": 0,
         "total_invalid": 0,
         "total_transformed": 0,
         "error": None,
-        "duration_seconds": None,
     }
+
+def update_pipeline_stage(
+    metadata: dict,
+    stage: str,
+) -> dict:
+    """
+    Atualiza a etapa atual
+    da execução do pipeline.
+    """
+
+    metadata["current_stage"] = stage
+
+    return metadata
 
 def calculate_pipeline_duration(
     started_at: str,

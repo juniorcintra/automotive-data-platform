@@ -245,7 +245,7 @@ def test_pipeline_saves_error_metadata_when_fails():
         mock_save_metadata.call_args.args[0]
     )
 
-    assert metadata["status"] == "error"
+    assert metadata["status"] == "failed"
 
     assert metadata["finished_at"] is not None
 

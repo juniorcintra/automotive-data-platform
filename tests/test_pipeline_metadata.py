@@ -6,6 +6,7 @@ from src.pipeline.metadata import (
     fail_pipeline_metadata,
     finish_pipeline_metadata,
     save_pipeline_metadata,
+    update_pipeline_stage,
 )
 
 def test_create_pipeline_metadata():
@@ -23,7 +24,9 @@ def test_create_pipeline_metadata():
     assert metadata["total_valid"] == 0
     assert metadata["total_invalid"] == 0
     assert metadata["total_transformed"] == 0
-
+    assert metadata["current_stage"] == (
+        "initialization"
+    )
     
 
 def test_finish_pipeline_metadata():
@@ -119,3 +122,18 @@ def test_calculate_pipeline_duration():
     )
 
     assert duration == 5.5
+
+def test_update_pipeline_stage():
+
+    metadata = create_pipeline_metadata(
+        "test_run_123"
+    )
+
+    result = update_pipeline_stage(
+        metadata=metadata,
+        stage="ingestion",
+    )
+
+    assert result["current_stage"] == (
+        "ingestion"
+    )
