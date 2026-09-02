@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from src.pipeline.metadata import (
+    calculate_pipeline_duration,
     create_pipeline_metadata,
     fail_pipeline_metadata,
     finish_pipeline_metadata,
@@ -44,6 +45,8 @@ def test_finish_pipeline_metadata():
     assert result["total_valid"] == 90
     assert result["total_invalid"] == 10
     assert result["total_transformed"] == 90
+    assert result["duration_seconds"] is not None
+    assert result["duration_seconds"] >= 0
 
 
 def test_save_pipeline_metadata(
@@ -95,3 +98,24 @@ def test_fail_pipeline_metadata():
     assert result["error"] == (
         "Erro ao processar veículos"
     )
+
+    assert result["duration_seconds"] is not None
+
+    assert result["duration_seconds"] >= 0
+
+def test_calculate_pipeline_duration():
+
+    started_at = (
+        "2026-09-02T10:00:00"
+    )
+
+    finished_at = (
+        "2026-09-02T10:00:05.500000"
+    )
+
+    duration = calculate_pipeline_duration(
+        started_at=started_at,
+        finished_at=finished_at,
+    )
+
+    assert duration == 5.5

@@ -26,7 +26,32 @@ def create_pipeline_metadata(
         "total_invalid": 0,
         "total_transformed": 0,
         "error": None,
+        "duration_seconds": None,
     }
+
+def calculate_pipeline_duration(
+    started_at: str,
+    finished_at: str,
+) -> float:
+    """
+    Calcula a duração da execução
+    do pipeline em segundos.
+    """
+
+    started_datetime = datetime.fromisoformat(
+        started_at
+    )
+
+    finished_datetime = datetime.fromisoformat(
+        finished_at
+    )
+
+    duration = (
+        finished_datetime
+        - started_datetime
+    )
+
+    return duration.total_seconds()
 
 
 def finish_pipeline_metadata(
@@ -45,6 +70,13 @@ def finish_pipeline_metadata(
 
     metadata["finished_at"] = (
         datetime.now().isoformat()
+    )
+
+    metadata["duration_seconds"] = (
+        calculate_pipeline_duration(
+            started_at=metadata["started_at"],
+            finished_at=metadata["finished_at"],
+        )
     )
 
     metadata["total_received"] = total_received
@@ -118,6 +150,13 @@ def fail_pipeline_metadata(
 
     metadata["finished_at"] = (
         datetime.now().isoformat()
+    )
+
+    metadata["duration_seconds"] = (
+        calculate_pipeline_duration(
+            started_at=metadata["started_at"],
+            finished_at=metadata["finished_at"],
+        )
     )
 
     metadata["error"] = str(error)
