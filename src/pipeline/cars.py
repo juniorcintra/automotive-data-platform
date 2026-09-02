@@ -31,6 +31,13 @@ from src.transformation.cars import (
     transform_cars,
 )
 
+from src.core.logger import (
+    get_logger,
+)
+
+logger = get_logger(
+    __name__
+)
 
 def main():
     """
@@ -47,11 +54,11 @@ def main():
 
     try:
 
-        print(
+        logger.info(
             "\n===== INICIANDO PIPELINE ====="
         )
 
-        print(
+        logger.info(
             f"Run ID: {run_id}"
         )
 
@@ -64,11 +71,11 @@ def main():
             stage="ingestion",
         )
 
-        print("\n===== INGESTION =====")
+        logger.info("\n===== INGESTION =====")
 
         cars = get_all_cars()
 
-        print(
+        logger.info(
             f"Total de carros recebidos: "
             f"{len(cars)}"
         )
@@ -82,7 +89,7 @@ def main():
             stage="bronze",
         )
 
-        print("\n===== BRONZE =====")
+        logger.info("\n===== BRONZE =====")
 
         raw_file = save_raw_cars(
             data={
@@ -91,7 +98,7 @@ def main():
             run_id=run_id,
         )
 
-        print(
+        logger.info(
             f"Bronze salvo em: {raw_file}"
         )
 
@@ -104,18 +111,18 @@ def main():
             stage="data_quality",
         )
 
-        print("\n===== DATA QUALITY =====")
+        logger.info("\n===== DATA QUALITY =====")
 
         valid_cars, invalid_cars = (
             validate_cars(cars)
         )
 
-        print(
+        logger.info(
             f"Registros válidos: "
             f"{len(valid_cars)}"
         )
 
-        print(
+        logger.info(
             f"Registros inválidos: "
             f"{len(invalid_cars)}"
         )
@@ -129,13 +136,13 @@ def main():
             stage="transformation",
         )
 
-        print("\n===== TRANSFORMATION =====")
+        logger.info("\n===== TRANSFORMATION =====")
 
         transformed_cars = transform_cars(
             valid_cars
         )
 
-        print(
+        logger.info(
             f"Total transformado: "
             f"{len(transformed_cars)}"
         )
@@ -149,14 +156,14 @@ def main():
             stage="silver",
         )
 
-        print("\n===== SILVER =====")
+        logger.info("\n===== SILVER =====")
 
         processed_file = save_processed_cars(
             data=transformed_cars,
             run_id=run_id,
         )
 
-        print(
+        logger.info(
             f"Silver salvo em: "
             f"{processed_file}"
         )
@@ -170,13 +177,13 @@ def main():
             stage="load_silver",
         )
 
-        print("\n===== LOAD SILVER =====")
+        logger.info("\n===== LOAD SILVER =====")
 
         silver_cars = load_processed_cars(
             processed_file
         )
 
-        print(
+        logger.info(
             f"Registros carregados da Silver: "
             f"{len(silver_cars)}"
         )
@@ -190,13 +197,13 @@ def main():
             stage="analytics",
         )
 
-        print("\n===== GOLD / ANALYTICS =====")
+        logger.info("\n===== GOLD / ANALYTICS =====")
 
         metrics = calculate_car_metrics(
             silver_cars
         )
 
-        print(
+        logger.info(
             f"Total de carros analisados: "
             f"{metrics['total_cars']}"
         )
@@ -210,14 +217,14 @@ def main():
             stage="gold",
         )
 
-        print("\n===== GOLD =====")
+        logger.info("\n===== GOLD =====")
 
         gold_file = save_gold_metrics(
             metrics=metrics,
             run_id=run_id,
         )
 
-        print(
+        logger.info(
             f"Gold salvo em: {gold_file}"
         )
 
@@ -248,7 +255,7 @@ def main():
         # FINAL
         # ========================================
 
-        print(
+        logger.info(
             "\n===== PIPELINE FINALIZADO "
             "COM SUCESSO =====\n"
         )
@@ -264,9 +271,9 @@ def main():
             metadata
         )
 
-        print(
-            "\n===== PIPELINE FINALIZADO "
-            "COM ERRO =====\n"
+        logger.exception(
+            f"Pipeline finalizado com erro. "
+            f"Run ID: {run_id}"
         )
 
         raise

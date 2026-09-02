@@ -1,10 +1,13 @@
 from pathlib import Path
 from unittest.mock import ANY, patch
 
+import pytest
+
 from src.pipeline.cars import main
 
 
 def test_pipeline_execution():
+
     raw_cars = [
         {
             "id": "1",
@@ -120,6 +123,7 @@ def test_pipeline_execution():
             ),
         ) as mock_save_gold_metrics,
     ):
+
         main()
 
     # ========================================
@@ -212,9 +216,7 @@ def test_pipeline_execution():
         metrics=metrics,
         run_id=ANY,
     )
-    
 
-import pytest
 
 def test_pipeline_saves_error_metadata_when_fails():
 
@@ -231,13 +233,22 @@ def test_pipeline_saves_error_metadata_when_fails():
         patch(
             "src.pipeline.cars.save_pipeline_metadata",
         ) as mock_save_metadata,
+
+        patch(
+            "src.pipeline.cars.logger.exception",
+        ) as mock_logger_exception,
     ):
 
         with pytest.raises(
             Exception,
             match="Erro na ingestão",
         ):
+
             main()
+
+    # ========================================
+    # METADATA DE ERRO
+    # ========================================
 
     mock_save_metadata.assert_called_once()
 
@@ -252,3 +263,9 @@ def test_pipeline_saves_error_metadata_when_fails():
     assert metadata["error"] == (
         "Erro na ingestão"
     )
+
+    # ========================================
+    # LOG DE ERRO
+    # ========================================
+
+    mock_logger_exception.assert_called_once()
