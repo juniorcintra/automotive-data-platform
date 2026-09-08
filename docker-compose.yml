@@ -1,0 +1,15 @@
+services:
+  spark:
+    image: apache/spark:4.0.0
+
+    container_name: automotive-spark
+
+    working_dir: /app
+
+    volumes:
+      - .:/app
+
+    command: >
+      bash -c "
+      tail -f /dev/null
+      "
