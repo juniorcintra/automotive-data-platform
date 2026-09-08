@@ -1,17 +1,30 @@
+import time
+
 import requests
 
 from src.core.config import (
     API_BASE_URL,
+    API_MAX_RETRIES,
+    API_RETRY_DELAY,
     API_TIMEOUT,
 )
 
 from src.core.logger import get_logger
 
 
-logger = get_logger(__name__)
+logger = get_logger(
+    __name__
+)
 
 
 class VT3APIClient:
+
+    RETRYABLE_STATUS_CODES = {
+        500,
+        502,
+        503,
+        504,
+    }
 
     def __init__(self):
 
@@ -32,59 +45,100 @@ class VT3APIClient:
 
         url = f"{self.base_url}{endpoint}"
 
-        logger.info(
-            f"Realizando requisição GET: {url}"
-        )
+        total_attempts = API_MAX_RETRIES + 1
 
-        try:
-
-            response = requests.get(
-                url,
-                params=params,
-                timeout=API_TIMEOUT,
-            )
-
-            response.raise_for_status()
+        for attempt in range(
+            1,
+            total_attempts + 1,
+        ):
 
             logger.info(
-                f"Requisição realizada com sucesso: "
-                f"{url}"
+                f"Realizando requisição GET: "
+                f"{url} "
+                f"(tentativa {attempt}/{total_attempts})"
             )
 
-            return response.json()
+            try:
 
-        except requests.exceptions.Timeout:
+                response = requests.get(
+                    url,
+                    params=params,
+                    timeout=API_TIMEOUT,
+                )
 
-            logger.exception(
-                f"Timeout ao realizar requisição: "
-                f"{url}"
-            )
+                if (
+                    response.status_code
+                    in self.RETRYABLE_STATUS_CODES
+                ):
 
-            raise
+                    if attempt < total_attempts:
 
-        except requests.exceptions.ConnectionError:
+                        logger.warning(
+                            f"Erro HTTP transitório "
+                            f"{response.status_code} "
+                            f"na tentativa {attempt}/{total_attempts}. "
+                            f"Tentando novamente em "
+                            f"{API_RETRY_DELAY}s."
+                        )
 
-            logger.exception(
-                f"Erro de conexão ao realizar requisição: "
-                f"{url}"
-            )
+                        time.sleep(
+                            API_RETRY_DELAY
+                        )
 
-            raise
+                        continue
 
-        except requests.exceptions.HTTPError:
+                response.raise_for_status()
 
-            logger.exception(
-                f"Erro HTTP ao realizar requisição: "
-                f"{url}"
-            )
+                logger.info(
+                    f"Requisição realizada com sucesso: "
+                    f"{url}"
+                )
 
-            raise
+                return response.json()
 
-        except requests.exceptions.RequestException:
+            except (
+                requests.exceptions.Timeout,
+                requests.exceptions.ConnectionError,
+            ) as error:
 
-            logger.exception(
-                f"Erro ao realizar requisição: "
-                f"{url}"
-            )
+                if attempt < total_attempts:
 
-            raise
+                    logger.warning(
+                        f"{type(error).__name__} "
+                        f"na tentativa "
+                        f"{attempt}/{total_attempts}. "
+                        f"Tentando novamente em "
+                        f"{API_RETRY_DELAY}s."
+                    )
+
+                    time.sleep(
+                        API_RETRY_DELAY
+                    )
+
+                    continue
+
+                logger.exception(
+                    f"Falha após "
+                    f"{total_attempts} tentativas: "
+                    f"{url}"
+                )
+
+                raise
+
+            except requests.exceptions.HTTPError:
+
+                logger.exception(
+                    f"Erro HTTP ao realizar requisição: "
+                    f"{url}"
+                )
+
+                raise
+
+            except requests.exceptions.RequestException:
+
+                logger.exception(
+                    f"Erro ao realizar requisição: "
+                    f"{url}"
+                )
+
+                raise

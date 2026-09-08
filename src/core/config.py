@@ -38,3 +38,17 @@ API_TIMEOUT = int(
         "30",
     )
 )
+
+API_MAX_RETRIES = int(
+    os.getenv(
+        "API_MAX_RETRIES",
+        "3",
+    )
+)
+
+API_RETRY_DELAY = float(
+    os.getenv(
+        "API_RETRY_DELAY",
+        "1",
+    )
+)

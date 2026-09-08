@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 import requests
@@ -6,19 +6,22 @@ import requests
 from src.ingestion.client import VT3APIClient
 
 
-def test_client_raises_error_without_api_base_url():
+def test_client_without_api_base_url():
 
     with patch(
         "src.ingestion.client.API_BASE_URL",
         None,
     ):
 
-        with pytest.raises(
-            ValueError,
-            match="API_BASE_URL não encontrada",
-        ):
-
+        try:
             VT3APIClient()
+            assert False
+        except ValueError as error:
+            assert (
+                str(error)
+                == "API_BASE_URL não encontrada nas variáveis "
+                "de ambiente."
+            )
 
 
 def test_client_initializes_with_api_base_url():
@@ -30,81 +33,71 @@ def test_client_initializes_with_api_base_url():
 
         client = VT3APIClient()
 
-    assert client.base_url == (
-        "https://api.example.com"
+    assert (
+        client.base_url
+        == "https://api.example.com"
     )
 
 
-def test_client_get_returns_json():
+def test_get_returns_json():
 
-    response_data = {
-        "data": [
-            {
-                "id": "1",
-                "marca": "Toyota",
-            }
-        ]
+    client = VT3APIClient()
+
+    response = type(
+        "Response",
+        (),
+        {
+            "status_code": 200,
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {
+                "data": []
+            },
+        },
+    )()
+
+    with patch(
+        "src.ingestion.client.requests.get",
+        return_value=response,
+    ) as mock_get:
+
+        result = client.get("/cars")
+
+    assert result == {
+        "data": []
     }
 
-    mock_response = Mock()
-
-    mock_response.json.return_value = (
-        response_data
-    )
-
-    with (
-        patch(
-            "src.ingestion.client.API_BASE_URL",
-            "https://api.example.com",
-        ),
-        patch(
-            "src.ingestion.client.requests.get",
-            return_value=mock_response,
-        ) as mock_get,
-    ):
-
-        client = VT3APIClient()
-
-        result = client.get(
-            "/cars"
-        )
-
     mock_get.assert_called_once_with(
-        "https://api.example.com/cars",
+        f"{client.base_url}/cars",
         params=None,
         timeout=30,
     )
 
-    mock_response.raise_for_status.assert_called_once()
 
-    assert result == response_data
+def test_get_passes_params():
 
+    client = VT3APIClient()
 
-def test_client_get_passes_params():
-
-    mock_response = Mock()
-
-    mock_response.json.return_value = {
-        "data": []
-    }
+    response = type(
+        "Response",
+        (),
+        {
+            "status_code": 200,
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {
+                "data": []
+            },
+        },
+    )()
 
     params = {
         "page": 1,
         "limit": 10,
     }
 
-    with (
-        patch(
-            "src.ingestion.client.API_BASE_URL",
-            "https://api.example.com",
-        ),
-        patch(
-            "src.ingestion.client.requests.get",
-            return_value=mock_response,
-        ) as mock_get,
-    ):
-
-        client = VT3APIClient()
+    with patch(
+        "src.ingestion.client.requests.get",
+        return_value=response,
+    ) as mock_get:
 
         client.get(
             "/cars",
@@ -112,145 +105,295 @@ def test_client_get_passes_params():
         )
 
     mock_get.assert_called_once_with(
-        "https://api.example.com/cars",
+        f"{client.base_url}/cars",
         params=params,
         timeout=30,
     )
 
 
-def test_client_logs_and_raises_timeout():
+def test_get_handles_timeout():
 
-    error = requests.exceptions.Timeout(
-        "Request timed out"
-    )
+    client = VT3APIClient()
 
-    with (
-        patch(
-            "src.ingestion.client.API_BASE_URL",
-            "https://api.example.com",
-        ),
-        patch(
-            "src.ingestion.client.requests.get",
-            side_effect=error,
-        ),
-        patch(
-            "src.ingestion.client.logger.exception",
-        ) as mock_logger_exception,
-    ):
-
-        client = VT3APIClient()
+    with patch(
+        "src.ingestion.client.requests.get",
+        side_effect=requests.exceptions.Timeout(),
+    ), patch(
+        "src.ingestion.client.time.sleep"
+    ), patch(
+        "src.ingestion.client.logger.exception"
+    ) as mock_logger:
 
         with pytest.raises(
-            requests.exceptions.Timeout,
+            requests.exceptions.Timeout
         ):
+            client.get("/cars")
 
-            client.get(
-                "/cars"
-            )
-
-    mock_logger_exception.assert_called_once()
+    mock_logger.assert_called_once()
 
 
-def test_client_logs_and_raises_connection_error():
+def test_get_handles_connection_error():
 
-    error = requests.exceptions.ConnectionError(
-        "Connection failed"
-    )
+    client = VT3APIClient()
 
-    with (
-        patch(
-            "src.ingestion.client.API_BASE_URL",
-            "https://api.example.com",
-        ),
-        patch(
-            "src.ingestion.client.requests.get",
-            side_effect=error,
-        ),
-        patch(
-            "src.ingestion.client.logger.exception",
-        ) as mock_logger_exception,
-    ):
-
-        client = VT3APIClient()
+    with patch(
+        "src.ingestion.client.requests.get",
+        side_effect=requests.exceptions.ConnectionError(),
+    ), patch(
+        "src.ingestion.client.time.sleep"
+    ), patch(
+        "src.ingestion.client.logger.exception"
+    ) as mock_logger:
 
         with pytest.raises(
-            requests.exceptions.ConnectionError,
+            requests.exceptions.ConnectionError
         ):
+            client.get("/cars")
 
-            client.get(
-                "/cars"
-            )
-
-    mock_logger_exception.assert_called_once()
+    mock_logger.assert_called_once()
 
 
-def test_client_logs_and_raises_http_error():
+def test_get_handles_http_error():
 
-    error = requests.exceptions.HTTPError(
-        "Internal Server Error"
-    )
+    client = VT3APIClient()
 
-    mock_response = Mock()
+    response = type(
+        "Response",
+        (),
+        {
+            "status_code": 404,
+            "raise_for_status": lambda self: (
+                (_ for _ in ()).throw(
+                    requests.exceptions.HTTPError(
+                        "404 Not Found"
+                    )
+                )
+            ),
+        },
+    )()
 
-    mock_response.raise_for_status.side_effect = (
-        error
-    )
-
-    with (
-        patch(
-            "src.ingestion.client.API_BASE_URL",
-            "https://api.example.com",
-        ),
-        patch(
-            "src.ingestion.client.requests.get",
-            return_value=mock_response,
-        ),
-        patch(
-            "src.ingestion.client.logger.exception",
-        ) as mock_logger_exception,
-    ):
-
-        client = VT3APIClient()
+    with patch(
+        "src.ingestion.client.requests.get",
+        return_value=response,
+    ), patch(
+        "src.ingestion.client.logger.exception"
+    ) as mock_logger:
 
         with pytest.raises(
-            requests.exceptions.HTTPError,
+            requests.exceptions.HTTPError
         ):
+            client.get("/cars")
 
-            client.get(
-                "/cars"
-            )
-
-    mock_logger_exception.assert_called_once()
+    mock_logger.assert_called_once()
 
 
-def test_client_logs_and_raises_request_exception():
+def test_get_handles_generic_request_exception():
 
-    error = requests.exceptions.RequestException(
-        "Generic request error"
-    )
+    client = VT3APIClient()
 
-    with (
-        patch(
-            "src.ingestion.client.API_BASE_URL",
-            "https://api.example.com",
-        ),
-        patch(
-            "src.ingestion.client.requests.get",
-            side_effect=error,
-        ),
-        patch(
-            "src.ingestion.client.logger.exception",
-        ) as mock_logger_exception,
-    ):
-
-        client = VT3APIClient()
+    with patch(
+        "src.ingestion.client.requests.get",
+        side_effect=requests.exceptions.RequestException(),
+    ), patch(
+        "src.ingestion.client.logger.exception"
+    ) as mock_logger:
 
         with pytest.raises(
-            requests.exceptions.RequestException,
+            requests.exceptions.RequestException
         ):
+            client.get("/cars")
 
-            client.get(
-                "/cars"
-            )
+    mock_logger.assert_called_once()
 
-    mock_logger_exception.assert_called_once()
+
+def test_get_retries_after_timeout():
+
+    client = VT3APIClient()
+
+    response = type(
+        "Response",
+        (),
+        {
+            "status_code": 200,
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {
+                "data": []
+            },
+        },
+    )()
+
+    with patch(
+        "src.ingestion.client.requests.get",
+        side_effect=[
+            requests.exceptions.Timeout(),
+            response,
+        ],
+    ) as mock_get, patch(
+        "src.ingestion.client.time.sleep"
+    ) as mock_sleep:
+
+        result = client.get("/cars")
+
+    assert result == {
+        "data": []
+    }
+
+    assert mock_get.call_count == 2
+
+    mock_sleep.assert_called_once_with(
+        1.0
+    )
+
+
+def test_get_retries_after_connection_error():
+
+    client = VT3APIClient()
+
+    response = type(
+        "Response",
+        (),
+        {
+            "status_code": 200,
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {
+                "data": []
+            },
+        },
+    )()
+
+    with patch(
+        "src.ingestion.client.requests.get",
+        side_effect=[
+            requests.exceptions.ConnectionError(),
+            requests.exceptions.ConnectionError(),
+            response,
+        ],
+    ) as mock_get, patch(
+        "src.ingestion.client.time.sleep"
+    ) as mock_sleep:
+
+        result = client.get("/cars")
+
+    assert result == {
+        "data": []
+    }
+
+    assert mock_get.call_count == 3
+
+    assert mock_sleep.call_count == 2
+
+    assert mock_sleep.call_args_list == [
+        ((1.0,), {}),
+        ((1.0,), {}),
+    ]
+
+
+def test_get_retries_after_retryable_http_error():
+
+    client = VT3APIClient()
+
+    response_503 = type(
+        "Response",
+        (),
+        {
+            "status_code": 503,
+            "raise_for_status": lambda self: (
+                (_ for _ in ()).throw(
+                    requests.exceptions.HTTPError(
+                        "503 Service Unavailable"
+                    )
+                )
+            ),
+        },
+    )()
+
+    response_success = type(
+        "Response",
+        (),
+        {
+            "status_code": 200,
+            "raise_for_status": lambda self: None,
+            "json": lambda self: {
+                "data": []
+            },
+        },
+    )()
+
+    with patch(
+        "src.ingestion.client.requests.get",
+        side_effect=[
+            response_503,
+            response_success,
+        ],
+    ) as mock_get, patch(
+        "src.ingestion.client.time.sleep"
+    ) as mock_sleep:
+
+        result = client.get("/cars")
+
+    assert result == {
+        "data": []
+    }
+
+    assert mock_get.call_count == 2
+
+    mock_sleep.assert_called_once_with(
+        1.0
+    )
+
+
+def test_get_does_not_retry_non_retryable_http_error():
+
+    client = VT3APIClient()
+
+    response = type(
+        "Response",
+        (),
+        {
+            "status_code": 404,
+            "raise_for_status": lambda self: (
+                (_ for _ in ()).throw(
+                    requests.exceptions.HTTPError(
+                        "404 Not Found"
+                    )
+                )
+            ),
+        },
+    )()
+
+    with patch(
+        "src.ingestion.client.requests.get",
+        return_value=response,
+    ) as mock_get, patch(
+        "src.ingestion.client.time.sleep"
+    ) as mock_sleep:
+
+        with pytest.raises(
+            requests.exceptions.HTTPError
+        ):
+            client.get("/cars")
+
+    assert mock_get.call_count == 1
+
+    mock_sleep.assert_not_called()
+
+
+def test_get_stops_after_max_retries():
+
+    client = VT3APIClient()
+
+    with patch(
+        "src.ingestion.client.requests.get",
+        side_effect=requests.exceptions.Timeout(),
+    ) as mock_get, patch(
+        "src.ingestion.client.time.sleep"
+    ) as mock_sleep:
+
+        with pytest.raises(
+            requests.exceptions.Timeout
+        ):
+            client.get("/cars")
+
+    assert mock_get.call_count == 4
+
+    assert mock_sleep.call_count == 3

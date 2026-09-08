@@ -3,7 +3,9 @@ from pathlib import Path
 from src.core.config import (
     BASE_DIR,
     DATA_DIR,
-    API_TIMEOUT
+    API_TIMEOUT,
+    API_MAX_RETRIES,
+    API_RETRY_DELAY,
 )
 
 
@@ -36,3 +38,10 @@ def test_api_timeout_is_integer():
     )
 
     assert API_TIMEOUT > 0
+
+def test_api_max_retries():
+    assert API_MAX_RETRIES == 3
+
+
+def test_api_retry_delay():
+    assert API_RETRY_DELAY == 1
