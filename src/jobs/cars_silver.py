@@ -115,3 +115,37 @@ def run_silver_job(
             "SparkSession encerrada | run_id=%s",
             run_id,
         )
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Executa o job Bronze -> Silver com PySpark."
+    )
+
+    parser.add_argument(
+        "--input",
+        required=True,
+        help="Caminho do arquivo Bronze JSON.",
+    )
+
+    parser.add_argument(
+        "--output",
+        required=True,
+        help="Caminho do diretório de saída Silver.",
+    )
+
+    parser.add_argument(
+        "--run-id",
+        required=False,
+        help="Identificador da execução.",
+    )
+
+    args = parser.parse_args()
+
+    run_silver_job(
+        input_path=args.input,
+        output_path=args.output,
+        run_id=args.run_id,
+    )
