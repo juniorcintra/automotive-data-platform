@@ -41,11 +41,11 @@ def transform_car(
         "price_effective": (
             comparativo_preco.get("precoEfetivo")
         ),
-        "price_fipe": (
-            comparativo_preco.get("precoFipe")
+        "price_fipe": comparativo_preco.get(
+            "precoFipe"
         ),
-        "price_market": (
-            comparativo_preco.get("precoMercado")
+        "price_market_average": comparativo_preco.get(
+            "mediaMercado"
         ),
         "price_difference_fipe_percent": (
             comparativo_preco.get(
