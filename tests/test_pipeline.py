@@ -22,7 +22,6 @@ def test_pipeline_execution():
     ]
 
     valid_cars = raw_cars
-
     invalid_cars = []
 
     transformed_cars = [
@@ -95,6 +94,13 @@ def test_pipeline_execution():
         ) as mock_save_processed_cars,
 
         patch(
+            "src.pipeline.cars.run_silver_spark_job",
+            return_value=Path(
+                "data/silver_spark/cars/test_run"
+            ),
+        ) as mock_run_silver_spark_job,
+
+        patch(
             "src.pipeline.cars.load_processed_cars",
             return_value=transformed_cars,
         ) as mock_load_processed_cars,
@@ -123,7 +129,6 @@ def test_pipeline_execution():
             ),
         ) as mock_save_gold_metrics,
     ):
-
         main()
 
     # ========================================
@@ -168,7 +173,7 @@ def test_pipeline_execution():
     )
 
     # ========================================
-    # SILVER
+    # SILVER - PYTHON
     # ========================================
 
     mock_save_processed_cars.assert_called_once_with(
@@ -176,8 +181,26 @@ def test_pipeline_execution():
         run_id=ANY,
     )
 
+    # ========================================
+    # SILVER - SPARK
+    # ========================================
+
+    mock_run_silver_spark_job.assert_called_once_with(
+        input_path=Path(
+            "data/bronze/cars.json"
+        ),
+        output_path=ANY,
+        run_id=ANY,
+    )
+
+    # ========================================
+    # LOAD SILVER
+    # ========================================
+
     mock_load_processed_cars.assert_called_once_with(
-        Path("data/silver/cars.parquet")
+        Path(
+            "data/silver/cars.parquet"
+        )
     )
 
     # ========================================
@@ -243,8 +266,88 @@ def test_pipeline_saves_error_metadata_when_fails():
             Exception,
             match="Erro na ingestão",
         ):
-
             main()
+            
+def test_pipeline_saves_error_metadata_when_spark_fails():
+
+    error = Exception(
+        "Erro na execução do Spark"
+    )
+
+    raw_cars = [
+        {
+            "id": "1",
+            "marca": "Toyota",
+            "modelo": "Corolla",
+        },
+    ]
+
+    transformed_cars = [
+        {
+            "car_id": "1",
+            "brand": "Toyota",
+            "model": "Corolla",
+        },
+    ]
+
+    with (
+        patch(
+            "src.pipeline.cars.get_all_cars",
+            return_value=raw_cars,
+        ),
+
+        patch(
+            "src.pipeline.cars.save_raw_cars",
+            return_value=Path(
+                "data/bronze/cars.json"
+            ),
+        ),
+
+        patch(
+            "src.pipeline.cars.validate_cars",
+            return_value=(
+                raw_cars,
+                [],
+            ),
+        ),
+
+        patch(
+            "src.pipeline.cars.transform_cars",
+            return_value=transformed_cars,
+        ),
+
+        patch(
+            "src.pipeline.cars.save_processed_cars",
+            return_value=Path(
+                "data/silver/cars.parquet"
+            ),
+        ),
+
+        patch(
+            "src.pipeline.cars.run_silver_spark_job",
+            side_effect=error,
+        ) as mock_run_silver_spark_job,
+
+        patch(
+            "src.pipeline.cars.save_pipeline_metadata",
+        ) as mock_save_metadata,
+
+        patch(
+            "src.pipeline.cars.logger.exception",
+        ) as mock_logger_exception,
+    ):
+
+        with pytest.raises(
+            Exception,
+            match="Erro na execução do Spark",
+        ):
+            main()
+
+    # ========================================
+    # SPARK
+    # ========================================
+
+    mock_run_silver_spark_job.assert_called_once()
 
     # ========================================
     # METADATA DE ERRO
@@ -261,7 +364,7 @@ def test_pipeline_saves_error_metadata_when_fails():
     assert metadata["finished_at"] is not None
 
     assert metadata["error"] == (
-        "Erro na ingestão"
+        "Erro na execução do Spark"
     )
 
     # ========================================

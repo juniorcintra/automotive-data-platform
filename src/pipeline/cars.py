@@ -3,11 +3,13 @@ from datetime import datetime
 from src.analytics.cars import (
     calculate_car_metrics,
 )
-
+from src.core.config import DATA_DIR
+from src.core.logger import (
+    get_logger,
+)
 from src.ingestion.cars import (
     get_all_cars,
 )
-
 from src.pipeline.metadata import (
     create_pipeline_metadata,
     fail_pipeline_metadata,
@@ -15,29 +17,27 @@ from src.pipeline.metadata import (
     save_pipeline_metadata,
     update_pipeline_stage,
 )
-
+from src.pipeline.spark import (
+    run_silver_spark_job,
+)
 from src.quality.cars import (
     validate_cars,
 )
-
 from src.storage.cars import (
     load_processed_cars,
     save_gold_metrics,
     save_processed_cars,
     save_raw_cars,
 )
-
 from src.transformation.cars import (
     transform_cars,
 )
 
-from src.core.logger import (
-    get_logger,
-)
 
 logger = get_logger(
     __name__
 )
+
 
 def main():
     """
@@ -53,7 +53,6 @@ def main():
     )
 
     try:
-
         logger.info(
             "\n===== INICIANDO PIPELINE ====="
         )
@@ -71,7 +70,9 @@ def main():
             stage="ingestion",
         )
 
-        logger.info("\n===== INGESTION =====")
+        logger.info(
+            "\n===== INGESTION ====="
+        )
 
         cars = get_all_cars()
 
@@ -89,7 +90,9 @@ def main():
             stage="bronze",
         )
 
-        logger.info("\n===== BRONZE =====")
+        logger.info(
+            "\n===== BRONZE ====="
+        )
 
         raw_file = save_raw_cars(
             data={
@@ -111,7 +114,9 @@ def main():
             stage="data_quality",
         )
 
-        logger.info("\n===== DATA QUALITY =====")
+        logger.info(
+            "\n===== DATA QUALITY ====="
+        )
 
         valid_cars, invalid_cars = (
             validate_cars(cars)
@@ -136,7 +141,9 @@ def main():
             stage="transformation",
         )
 
-        logger.info("\n===== TRANSFORMATION =====")
+        logger.info(
+            "\n===== TRANSFORMATION ====="
+        )
 
         transformed_cars = transform_cars(
             valid_cars
@@ -148,7 +155,7 @@ def main():
         )
 
         # ========================================
-        # 5. SILVER
+        # 5. SILVER - PYTHON
         # ========================================
 
         metadata = update_pipeline_stage(
@@ -156,7 +163,9 @@ def main():
             stage="silver",
         )
 
-        logger.info("\n===== SILVER =====")
+        logger.info(
+            "\n===== SILVER ====="
+        )
 
         processed_file = save_processed_cars(
             data=transformed_cars,
@@ -169,7 +178,38 @@ def main():
         )
 
         # ========================================
-        # 6. LOAD SILVER
+        # 6. SILVER - SPARK
+        # ========================================
+
+        metadata = update_pipeline_stage(
+            metadata=metadata,
+            stage="spark_silver",
+        )
+
+        logger.info(
+            "\n===== SPARK SILVER ====="
+        )
+
+        spark_silver_path = (
+            DATA_DIR
+            / "silver_spark"
+            / "cars"
+            / run_id
+        )
+
+        run_silver_spark_job(
+            input_path=raw_file,
+            output_path=spark_silver_path,
+            run_id=run_id,
+        )
+
+        logger.info(
+            f"Spark Silver salva em: "
+            f"{spark_silver_path}"
+        )
+
+        # ========================================
+        # 7. LOAD SILVER
         # ========================================
 
         metadata = update_pipeline_stage(
@@ -177,7 +217,9 @@ def main():
             stage="load_silver",
         )
 
-        logger.info("\n===== LOAD SILVER =====")
+        logger.info(
+            "\n===== LOAD SILVER ====="
+        )
 
         silver_cars = load_processed_cars(
             processed_file
@@ -189,7 +231,7 @@ def main():
         )
 
         # ========================================
-        # 7. GOLD / ANALYTICS
+        # 8. GOLD / ANALYTICS
         # ========================================
 
         metadata = update_pipeline_stage(
@@ -197,7 +239,9 @@ def main():
             stage="analytics",
         )
 
-        logger.info("\n===== GOLD / ANALYTICS =====")
+        logger.info(
+            "\n===== GOLD / ANALYTICS ====="
+        )
 
         metrics = calculate_car_metrics(
             silver_cars
@@ -209,7 +253,7 @@ def main():
         )
 
         # ========================================
-        # 8. GOLD
+        # 9. GOLD
         # ========================================
 
         metadata = update_pipeline_stage(
@@ -217,7 +261,9 @@ def main():
             stage="gold",
         )
 
-        logger.info("\n===== GOLD =====")
+        logger.info(
+            "\n===== GOLD ====="
+        )
 
         gold_file = save_gold_metrics(
             metrics=metrics,
@@ -229,7 +275,7 @@ def main():
         )
 
         # ========================================
-        # 9. FINALIZA METADATA
+        # 10. FINALIZA METADATA
         # ========================================
 
         metadata = update_pipeline_stage(
@@ -261,7 +307,6 @@ def main():
         )
 
     except Exception as error:
-
         metadata = fail_pipeline_metadata(
             metadata=metadata,
             error=error,
